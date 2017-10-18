@@ -278,12 +278,14 @@ int main(int argc, char **argv)
             if (strcmp(argv[1], str_stop) == 0) {
                 DEBUG_INFO("-stop softap-\n");
                 wifi_rtl_stop_hostapd();
+                system("ifconfig wlan1 down");
                 return;
             }
         } else {
             if (strcmp(argv[1],str_stop) == 0) {
                 DEBUG_INFO("-stop softap-\n");
                 wifi_dhd_stop_softap();
+                system("ifconfig wlan1 down");
                 return;
             }
         }
