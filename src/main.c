@@ -98,7 +98,8 @@ int create_hostapd_file(const char* name, const char* password)
     fp = fopen(HOSTAPD_CONF_DIR, "wt+");
 
     if (fp != 0) {
-        fputs("interface=p2p0\n", fp);
+        fputs("interface=wlan1\n", fp);
+        fputs("ctrl_interface=/data/bin\n", fp);
         fputs("driver=nl80211\n", fp);
         fputs("ssid=", fp);
         fputs(name, fp);
@@ -106,8 +107,8 @@ int create_hostapd_file(const char* name, const char* password)
         fputs("channel=6\n", fp);
         fputs("hw_mode=g\n", fp);
         fputs("ieee80211n=1\n", fp);
-        fputs("ht_capab=[SHORT-GI-20]\n", fp);
         fputs("ignore_broadcast_ssid=0\n", fp);
+#if 0
         fputs("auth_algs=1\n", fp);
         fputs("wpa=3\n", fp);
         fputs("wpa_passphrase=", fp);
@@ -116,7 +117,7 @@ int create_hostapd_file(const char* name, const char* password)
         fputs("wpa_key_mgmt=WPA-PSK\n", fp);
         fputs("wpa_pairwise=TKIP\n", fp);
         fputs("rsn_pairwise=CCMP", fp);
-
+#endif
         fclose(fp);
         return 0;
     }
@@ -146,11 +147,10 @@ int wlan_accesspoint_start(const char* ssid, const char* password)
     char cmdline[256] = {0};
     create_hostapd_file(ssid, password);
 
-    console_run("kill -15 $(pidof dnsmasq)");
-    console_run("ifconfig lo 127.0.0.1 netmask 255.255.255.0");
-    console_run("ifconfig p2p0 up");
-    console_run("ifconfig p2p0 10.201.126..1 netmask 255.255.255.0");
-    // creat_dnsmasq_file();
+	console_run("killall dnsmasq");
+	console_run("ifconfig wlan1 up");
+	console_run("ifconfig wlan1 10.201.126.1");
+	// creat_dnsmasq_file();
     int dnsmasq_pid = get_dnsmasq_pid();
     if (dnsmasq_pid != 0) {
         memset(cmdline, 0, sizeof(cmdline));
@@ -158,7 +158,7 @@ int wlan_accesspoint_start(const char* ssid, const char* password)
         console_run(cmdline);
     }
     memset(cmdline, 0, sizeof(cmdline));
-    sprintf(cmdline, "dnsmasq -C %s --interface=p2p0", DNSMASQ_CONF_DIR);
+    sprintf(cmdline, "dnsmasq -C %s --interface=wlan1", DNSMASQ_CONF_DIR);
     console_run(cmdline);
 
     memset(cmdline, 0, sizeof(cmdline));
@@ -278,14 +278,16 @@ int main(int argc, char **argv)
             if (strcmp(argv[1], str_stop) == 0) {
                 DEBUG_INFO("-stop softap-\n");
                 wifi_rtl_stop_hostapd();
-                system("ifconfig wlan1 down");
+                system("ifconfig p2p0 down");
                 return;
             }
         } else {
             if (strcmp(argv[1],str_stop) == 0) {
                 DEBUG_INFO("-stop softap-\n");
-                wifi_dhd_stop_softap();
-                system("ifconfig wlan1 down");
+				wifi_rtl_stop_hostapd();
+				console_run("killall dnsmasq");
+				console_run("ifconfig wlan1 down");
+				console_run("rm -rf /data/bin/wlan1");
                 return;
             }
         }
@@ -297,8 +299,16 @@ int main(int argc, char **argv)
         wlan_accesspoint_start(apName,"123456789");
         //iftables_eth0_to_p2p0();
 
-    } else {
-        wifi_dhd_start_softap(apName,"123456789");
-        //iftables_eth0_to_wl0();
+    } else {
+		console_run("killall dnsmasq");
+		console_run("killall hostapd");
+		console_run("ifconfig wlan1 down");
+		console_run("rm -rf /data/bin/wlan1");
+		console_run("iw dev wlan1 del");
+		console_run("ifconfig wlan0 up");
+		console_run("iw phy0 interface add wlan1 type managed");
+		wlan_accesspoint_start(apName,"123456789");
+		//wifi_dhd_start_softap(apName,"123456789");
+		//iftables_eth0_to_wl0();
     }
 }
