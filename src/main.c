@@ -21,9 +21,9 @@ static char wifi_type[64];
 
 #define WIFI_CHIP_TYPE_PATH     "/sys/class/rkwifi/chip"
 static const char SOFTAP_INTERFACE_STATIC_IP[] = "10.201.126.1";
-static const char DNSMASQ_CONF_DIR[] = "/data/bin/dnsmasq.conf";
+static const char DNSMASQ_CONF_DIR[] = "/userdata/bin/dnsmasq.conf";
 // hostapd
-static const char HOSTAPD_CONF_DIR[] = "/data/bin/hostapd.conf";
+static const char HOSTAPD_CONF_DIR[] = "/userdata/bin/hostapd.conf";
 static char softap_name[64];
 
 const bool console_run(const char *cmdline)
@@ -104,7 +104,7 @@ int create_hostapd_file(const char* name, const char* password)
     if (fp != 0) {
 		sprintf(cmdline, "interface=%s\n", softap_name);
         fputs(cmdline, fp);
-        fputs("ctrl_interface=/data/bin\n", fp);
+        fputs("ctrl_interface=/userdata/bin\n", fp);
         fputs("driver=nl80211\n", fp);
         fputs("ssid=", fp);
         fputs(name, fp);
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
 				wifi_rtl_stop_hostapd();
 				console_run("killall dnsmasq");
 				console_run("ifconfig wlan1 down");
-				console_run("rm -rf /data/bin/wlan1");
+				console_run("rm -rf /userdata/bin/wlan1");
                 return;
             }
         }
@@ -317,12 +317,12 @@ int main(int argc, char **argv)
     DEBUG_INFO("start softap with name: %s---", apName);
     if (!strncmp(wifi_type, "RTL", 3)) {
 		console_run("ifconfig p2p0 down");
-		console_run("rm -rf /data/bin/p2p0");
+		console_run("rm -rf /userdata/bin/p2p0");
         wlan_accesspoint_start(apName,"123456789");
         //iftables_eth0_to_p2p0();
     } else {
 		console_run("ifconfig wlan1 down");
-		console_run("rm -rf /data/bin/wlan1");
+		console_run("rm -rf /userdata/bin/wlan1");
 		console_run("iw dev wlan1 del");
 		console_run("ifconfig wlan0 up");
 		console_run("iw phy0 interface add wlan1 type managed");
