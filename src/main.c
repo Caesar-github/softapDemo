@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -5,6 +6,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #define SOFTAP_VERSION "1.0"
 #define DBG true
@@ -71,7 +73,8 @@ int get_dnsmasq_pid()
     return ret;
 }
 
-int get_hostapd_pid(){
+int get_hostapd_pid()
+{
     int ret;
     ret = get_pid("hostapd");
     return ret;
@@ -88,7 +91,7 @@ int wifi_rtl_stop_hostapd()
     if (pid!=0) {
         asprintf(&cmd, "kill %d", pid);
         console_run(cmd);
-		console_run("killall hostapd");
+        console_run("killall hostapd");
         free(cmd);
     }
     return 0;
@@ -97,12 +100,12 @@ int wifi_rtl_stop_hostapd()
 int create_hostapd_file(const char* name, const char* password)
 {
     FILE* fp;
-	char cmdline[256] = {0};
+    char cmdline[256] = {0};
 
     fp = fopen(HOSTAPD_CONF_DIR, "wt+");
 
     if (fp != 0) {
-		sprintf(cmdline, "interface=%s\n", softap_name);
+        sprintf(cmdline, "interface=%s\n", softap_name);
         fputs(cmdline, fp);
         fputs("ctrl_interface=/userdata/bin\n", fp);
         fputs("driver=nl80211\n", fp);
@@ -152,12 +155,14 @@ int wlan_accesspoint_start(const char* ssid, const char* password)
     char cmdline[256] = {0};
     create_hostapd_file(ssid, password);
 
-	console_run("killall dnsmasq");
-	sprintf(cmdline, "ifconfig %s up", softap_name);
-	console_run(cmdline);
-	sprintf(cmdline, "ifconfig %s 10.201.126.1", softap_name);
-	console_run(cmdline);
-	// creat_dnsmasq_file();
+    console_run("killall dnsmasq");
+    sprintf(cmdline, "ifconfig %s up", softap_name);
+    console_run(cmdline);
+    sprintf(cmdline, "ifconfig %s 10.201.126.1 netmask 255.255.255.0", softap_name);
+    console_run(cmdline);
+    sprintf(cmdline, "route add default gw 10.201.126.1 %s", softap_name);
+    console_run(cmdline);
+    // creat_dnsmasq_file();
     int dnsmasq_pid = get_dnsmasq_pid();
     if (dnsmasq_pid != 0) {
         memset(cmdline, 0, sizeof(cmdline));
@@ -169,7 +174,7 @@ int wlan_accesspoint_start(const char* ssid, const char* password)
     console_run(cmdline);
 
     memset(cmdline, 0, sizeof(cmdline));
-    sprintf(cmdline, "hostapd %s &", HOSTAPD_CONF_DIR);
+    sprintf(cmdline, "hostapd %s -B", HOSTAPD_CONF_DIR);
     console_run(cmdline);
     return 1;
 }
@@ -204,7 +209,8 @@ const int wifi_dhd_start_softap(const char* apName, const char* apPassword)
     return 1;
 }
 
-const int wifi_dhd_stop_softap(){
+const int wifi_dhd_stop_softap()
+{
     console_run("dhd_priv iapsta_disable ifname wlan1");
     return 0;
 }
@@ -278,15 +284,15 @@ int main(int argc, char **argv)
     char *str_stop = "stop";
     const char *apName = "RK_SOFTAP_TEST";
 
-	DEBUG_INFO("\nsoftap_version: %s\n", SOFTAP_VERSION);
-	
+    DEBUG_INFO("\nsoftap_version: %s\n", SOFTAP_VERSION);
+
     check_wifi_chip_type_string(wifi_type);
     DEBUG_INFO("\nwifi type: %s\n",wifi_type);
 
-	if (!strncmp(wifi_type, "RTL", 3))
-		strcpy(softap_name, "p2p0");
-	else
-		strcpy(softap_name, "wlan1");
+    if (!strncmp(wifi_type, "RTL", 3))
+        strcpy(softap_name, "p2p0");
+    else
+        strcpy(softap_name, "wlan1");
 
     if (argc >= 2) {
         if (!strncmp(wifi_type, "RTL", 3)) {
@@ -294,40 +300,41 @@ int main(int argc, char **argv)
                 DEBUG_INFO("-stop softap-\n");
                 wifi_rtl_stop_hostapd();
                 system("ifconfig p2p0 down");
-                return;
+                return 0;
             }
         } else {
             if (strcmp(argv[1],str_stop) == 0) {
                 DEBUG_INFO("-stop softap-\n");
-				wifi_rtl_stop_hostapd();
-				console_run("killall dnsmasq");
-				console_run("ifconfig wlan1 down");
-				console_run("rm -rf /userdata/bin/wlan1");
-                return;
+                wifi_rtl_stop_hostapd();
+                console_run("killall dnsmasq");
+                console_run("ifconfig wlan1 down");
+                console_run("rm -rf /userdata/bin/wlan1");
+                return 0;
             }
         }
         apName = argv[1];
     }
 
 
-	console_run("killall dnsmasq");
-	console_run("killall hostapd");
-	console_run("killall udhcpc");
+    console_run("killall dnsmasq");
+    console_run("killall hostapd");
+    console_run("killall udhcpc");
 
     DEBUG_INFO("start softap with name: %s---", apName);
     if (!strncmp(wifi_type, "RTL", 3)) {
-		console_run("ifconfig p2p0 down");
-		console_run("rm -rf /userdata/bin/p2p0");
+        console_run("ifconfig p2p0 down");
+        console_run("rm -rf /userdata/bin/p2p0");
         wlan_accesspoint_start(apName,"123456789");
         //iftables_eth0_to_p2p0();
-    } else {
-		console_run("ifconfig wlan1 down");
-		console_run("rm -rf /userdata/bin/wlan1");
-		console_run("iw dev wlan1 del");
-		console_run("ifconfig wlan0 up");
-		console_run("iw phy0 interface add wlan1 type managed");
-		wlan_accesspoint_start(apName,"123456789");
-		//wifi_dhd_start_softap(apName,"123456789");
-		//iftables_eth0_to_wl0();
+    } else {
+        console_run("ifconfig wlan1 down");
+        console_run("rm -rf /userdata/bin/wlan1");
+        console_run("iw dev wlan1 del");
+        console_run("ifconfig wlan0 up");
+        console_run("iw phy0 interface add wlan1 type managed");
+        wlan_accesspoint_start(apName,"123456789");
+        //wifi_dhd_start_softap(apName,"123456789");
+        //iftables_eth0_to_wl0();
     }
+    return 0;
 }
