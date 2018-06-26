@@ -174,7 +174,7 @@ int wlan_accesspoint_start(const char* ssid, const char* password)
     console_run(cmdline);
 
     memset(cmdline, 0, sizeof(cmdline));
-    sprintf(cmdline, "hostapd %s -B", HOSTAPD_CONF_DIR);
+    sprintf(cmdline, "hostapd %s &", HOSTAPD_CONF_DIR);
     console_run(cmdline);
     return 1;
 }
