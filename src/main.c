@@ -107,7 +107,7 @@ int create_hostapd_file(const char* name, const char* password)
     if (fp != 0) {
         sprintf(cmdline, "interface=%s\n", softap_name);
         fputs(cmdline, fp);
-        fputs("ctrl_interface=/userdata/bin\n", fp);
+        fputs("ctrl_interface=/var/run/hostapd\n", fp);
         fputs("driver=nl80211\n", fp);
         fputs("ssid=", fp);
         fputs(name, fp);
@@ -308,7 +308,6 @@ int main(int argc, char **argv)
                 wifi_rtl_stop_hostapd();
                 console_run("killall dnsmasq");
                 console_run("ifconfig wlan1 down");
-                console_run("rm -rf /userdata/bin/wlan1");
                 return 0;
             }
         }
