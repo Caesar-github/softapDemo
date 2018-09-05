@@ -330,7 +330,10 @@ int main(int argc, char **argv)
         console_run("rm -rf /userdata/bin/wlan1");
         console_run("iw dev wlan1 del");
         console_run("ifconfig wlan0 up");
-        console_run("iw phy0 interface add wlan1 type managed");
+        if (!strncmp(wifi_type, "AP6181", 6))
+            console_run("iw dev wlan0 interface add wlan1 type __ap");
+        else
+            console_run("iw phy0 interface add wlan1 type managed");
         wlan_accesspoint_start(apName,"123456789");
         //wifi_dhd_start_softap(apName,"123456789");
         //iftables_eth0_to_wl0();
