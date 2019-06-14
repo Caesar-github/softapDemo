@@ -22,7 +22,7 @@
 static char wifi_type[64];
 
 #define WIFI_CHIP_TYPE_PATH     "/sys/class/rkwifi/chip"
-static const char SOFTAP_INTERFACE_STATIC_IP[] = "10.201.126.1";
+static const char SOFTAP_INTERFACE_STATIC_IP[] = "192.168.88.1";
 static const char DNSMASQ_CONF_DIR[] = "/userdata/bin/dnsmasq.conf";
 // hostapd
 static const char HOSTAPD_CONF_DIR[] = "/userdata/bin/hostapd.conf";
@@ -141,7 +141,7 @@ bool creat_dnsmasq_file()
         fputs("listen-address=", fp);
         fputs(SOFTAP_INTERFACE_STATIC_IP, fp);
         fputs("\n", fp);
-        fputs("dhcp-range=10.201.126.50,10.201.126.150\n", fp);
+        fputs("dhcp-range=192.168.88.50,192.168.88.150\n", fp);
         fputs("server=/google/8.8.8.8\n", fp);
         fclose(fp);
         return true;
@@ -158,11 +158,11 @@ int wlan_accesspoint_start(const char* ssid, const char* password)
     console_run("killall dnsmasq");
     sprintf(cmdline, "ifconfig %s up", softap_name);
     console_run(cmdline);
-    sprintf(cmdline, "ifconfig %s 10.201.126.1 netmask 255.255.255.0", softap_name);
+    sprintf(cmdline, "ifconfig %s 192.168.88.1 netmask 255.255.255.0", softap_name);
     console_run(cmdline);
-    sprintf(cmdline, "route add default gw 10.201.126.1 %s", softap_name);
-    console_run(cmdline);
-    // creat_dnsmasq_file();
+    //sprintf(cmdline, "route add default gw 192.168.88.1 %s", softap_name);
+    //console_run(cmdline);
+    creat_dnsmasq_file();
     int dnsmasq_pid = get_dnsmasq_pid();
     if (dnsmasq_pid != 0) {
         memset(cmdline, 0, sizeof(cmdline));
